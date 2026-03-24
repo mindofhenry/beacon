@@ -1,14 +1,9 @@
 # Environment variables — never commit secrets
 .env
 
-# Python cache
-__pycache__/
-*.py[cod]
-*.pyo
-
-# Virtual environments
-venv/
+# Virtual environment
 .venv/
+venv/
 env/
 
 # OS noise
