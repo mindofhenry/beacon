@@ -75,7 +75,15 @@ any GTM org can adopt, not a one-off PostHog demo.
 ### 1. Install dependencies
 
 ```bash
-pip install mcp
+python -m venv .venv
+
+# Windows
+.venv\Scripts\activate
+
+# macOS/Linux
+source .venv/bin/activate
+
+pip install -r requirements.txt
 ```
 
 ### 2. Connect to Claude Desktop
@@ -146,6 +154,10 @@ cp .env.example .env
 ### 7. Run the bot
 
 ```bash
+# Activate venv first if not already active
+.venv\Scripts\activate   # Windows
+source .venv/bin/activate # macOS/Linux
+
 python slack_bot.py
 ```
 
