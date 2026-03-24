@@ -1,0 +1,6 @@
+# Beacon dependencies
+# Install with: pip install -r requirements.txt
+
+mcp>=1.26.0        # Official MCP Python SDK (FastMCP interface)
+                   # ingest.py uses stdlib only (urllib, argparse, pathlib)
+                   # no additional packages required
