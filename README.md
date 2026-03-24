@@ -28,17 +28,9 @@ docs in an afternoon.
 
 ## Demo
 
-Beacon is demoed against **PostHog** — an open-source product analytics platform with a
-rich competitive landscape (vs. Mixpanel, Amplitude, Heap, FullStory, LaunchDarkly).
+> **Want to see Beacon fully loaded?** Check out the [`posthog-demo`](https://github.com/mindofhenry/beacon/tree/posthog-demo) branch — a complete implementation built around [PostHog](https://posthog.com), an open-source product analytics platform. It includes curated GTM content covering objection handling, competitive positioning (vs. Mixpanel, Amplitude, Heap, FullStory, LaunchDarkly), buyer personas, and pricing — all written in rep language, not docs scraped.
 
-The knowledge base is curated GTM content written in rep language — objection handling,
-competitive positioning, discovery questions, pricing scenarios. Not a docs scrape.
-
-**Example queries:**
-- *"How do we handle the objection that a prospect already uses Mixpanel?"*
-- *"What's our positioning against Amplitude for an enterprise buyer?"*
-- *"What discovery questions should I ask a PM persona?"*
-- *"Walk me through the pricing conversation when they say it's too expensive."*
+This `main` branch is the **blank template**. Clone it, point `ingest.py` at your own docs repo, fill in the knowledge base files, and you have a rep intelligence tool tailored to your product in an afternoon.
 
 
 ---
