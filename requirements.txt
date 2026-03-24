@@ -1,6 +1,9 @@
 # Beacon dependencies
 # Install with: pip install -r requirements.txt
 
-mcp>=1.26.0        # Official MCP Python SDK (FastMCP interface)
-                   # ingest.py uses stdlib only (urllib, argparse, pathlib)
-                   # no additional packages required
+mcp>=1.26.0          # MCP server (server.py)
+anthropic>=0.86.0    # Anthropic API client (slack_bot.py)
+slack-bolt>=1.27.0   # Slack Bolt SDK (slack_bot.py)
+python-dotenv>=1.2.0 # .env loading (slack_bot.py)
+
+# ingest.py uses stdlib only (urllib, argparse, pathlib) — no extra packages

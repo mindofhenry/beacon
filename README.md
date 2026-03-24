@@ -104,6 +104,55 @@ In any Claude chat:
 
 ---
 
+## Connect to Slack
+
+Beacon runs as a Slack bot using Socket Mode — no public URL or ngrok required once deployed.
+
+### 1. Create a Slack App
+
+Go to [api.slack.com/apps](https://api.slack.com/apps) → **Create New App** → **From scratch**.
+
+### 2. Configure permissions
+
+Under **OAuth & Permissions → Scopes → Bot Token Scopes**, add:
+- `app_mentions:read` — detect @Beacon mentions
+- `chat:write` — post answers
+- `commands` — handle /beacon slash command
+
+Under **Socket Mode**, enable it and generate an **App-Level Token** with `connections:write` scope. This is your `SLACK_APP_TOKEN` (`xapp-...`).
+
+### 3. Add the slash command
+
+Under **Slash Commands** → **Create New Command**:
+- Command: `/beacon`
+- Request URL: anything (Socket Mode ignores this)
+- Description: `Ask Beacon a product question`
+
+### 4. Enable Event Subscriptions
+
+Under **Event Subscriptions**, enable and subscribe to `app_mention` under **Bot Events**.
+
+### 5. Install the app and get tokens
+
+**Install App** → copy the **Bot User OAuth Token** (`xoxb-...`). This is your `SLACK_BOT_TOKEN`.
+
+### 6. Add credentials to .env
+
+```bash
+cp .env.example .env
+# Fill in SLACK_BOT_TOKEN, SLACK_APP_TOKEN, and ANTHROPIC_API_KEY
+```
+
+### 7. Run the bot
+
+```bash
+python slack_bot.py
+```
+
+Then in any Slack channel: `/beacon how do we handle the Mixpanel objection?`
+
+---
+
 ## Rebuild the Knowledge Base with ingest.py
 
 `ingest.py` pulls markdown files from any public GitHub repo and writes them to
@@ -138,7 +187,7 @@ ingests, add a `GITHUB_TOKEN` to `.env` and update `ingest.py` to pass it as an
 | Interface | Status | Notes |
 |---|---|---|
 | Claude Desktop / Claude.ai | ✅ Live | 3-line MCP config |
-| Slack | 🚧 In progress | Slash command wrapper |
+| Slack | ✅ Live | `/beacon` slash command + `@Beacon` mention |
 | GitHub | ✅ Live | `ingest.py` pulls from any public repo |
 | Gong | 🔑 Requires API key | Official MCP support as of Oct 2025 |
 | Nooks | 🔜 Roadmap | No public API yet |
