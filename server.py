@@ -2,6 +2,11 @@
 Beacon — Rep Intelligence MCP Server
 Exposes a single tool: ask_product
 Reads from the knowledge_base/ directory and answers rep questions.
+
+Response format (always):
+  CONFIDENCE: HIGH | LOW
+  ANSWER: <rep-ready answer>
+  BEACON_GAP: <one-sentence summary>   ← only present when CONFIDENCE is LOW
 """
 
 from mcp.server.fastmcp import FastMCP
@@ -35,6 +40,7 @@ def load_knowledge_base() -> str:
 
     return "\n\n---\n\n".join(sections)
 
+
 # --- Tool Definition ---
 @mcp.tool()
 def ask_product(question: str) -> str:
@@ -49,11 +55,28 @@ def ask_product(question: str) -> str:
     """
     kb = load_knowledge_base()
 
-    # We return both the KB content and the question formatted as a prompt.
-    # The MCP client (Claude.ai) will use this as context to generate the answer.
+    # The prompt requires the model to declare confidence explicitly.
+    # This gives downstream consumers (Slack bot, future clients) a reliable
+    # signal to route on — rather than trying to detect hedging language after
+    # the fact, which is fragile.
+    #
+    # CONFIDENCE: HIGH — KB had a clear answer. Post it and move on.
+    # CONFIDENCE: LOW  — KB was thin or silent. Post what we found, offer
+    #                    the source-code deep dive, and log the gap.
     return f"""You are Beacon, a rep intelligence assistant. Answer the rep's question
 using ONLY the knowledge base below. Be concise, direct, and use rep-friendly language.
-If the answer isn't in the KB, say so clearly rather than guessing.
+
+You MUST respond in exactly this format — no exceptions:
+
+CONFIDENCE: HIGH or LOW
+ANSWER: <your answer here>
+BEACON_GAP: <one-sentence summary of what was missing>   <- include ONLY if CONFIDENCE is LOW
+
+Rules for CONFIDENCE:
+- HIGH: The knowledge base contains a clear, specific answer to this question.
+- LOW: The knowledge base is silent, vague, or you are extrapolating beyond what it says.
+       When LOW, still give the best answer you can from available context — do not
+       just say "I don't know." Then include the BEACON_GAP line.
 
 === KNOWLEDGE BASE ===
 {kb}

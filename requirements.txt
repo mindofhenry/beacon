@@ -1,9 +1,11 @@
 # Beacon dependencies
 # Install with: pip install -r requirements.txt
 
-mcp>=1.26.0          # MCP server (server.py)
-anthropic>=0.86.0    # Anthropic API client (slack_bot.py)
-slack-bolt>=1.27.0   # Slack Bolt SDK (slack_bot.py)
-python-dotenv>=1.2.0 # .env loading (slack_bot.py)
+mcp>=1.26.0
+anthropic>=0.86.0
+openai>=1.30.0
+google-generativeai>=0.7.0
+slack-bolt>=1.27.0
+python-dotenv>=1.2.0
 
 # ingest.py uses stdlib only (urllib, argparse, pathlib) — no extra packages

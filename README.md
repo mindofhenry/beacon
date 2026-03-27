@@ -40,25 +40,37 @@ This `main` branch is the **blank template**. Clone it, point `ingest.py` at you
 ```
 beacon/
 ├── server.py              # MCP server — exposes ask_product tool
+├── slack_bot.py           # Slack bot — channel-native, no slash commands needed
+├── llm.py                 # LLM provider abstraction (Anthropic, OpenAI, Gemini)
 ├── knowledge_base/
 │   ├── product.md         # Capabilities, integrations, technical specs
 │   ├── objections.md      # Objection handling in rep language
-│   ├── competitors.md     # Competitive positioning vs. 6 competitors
-│   ├── personas.md        # 4 buyer profiles — pains + discovery questions
+│   ├── competitors.md     # Competitive positioning
+│   ├── personas.md        # Buyer profiles — pains + discovery questions
 │   └── pricing.md         # Packaging, free tier, negotiation scenarios
 ├── ingest.py              # Rebuilds KB from any public GitHub repo or docs URL
-├── .env                   # (optional) GitHub token for private repos
+├── .env.example           # Required environment variables
 ├── requirements.txt
 └── README.md
 ```
 
 **`server.py`** — FastMCP server. Exposes one tool: `ask_product`. On each call, loads
-all `.md` files from `knowledge_base/` into context and returns a grounded, rep-ready
-answer. No vector store — the full KB fits in context and keeps things simple.
+all `.md` files from `knowledge_base/` into context and returns a structured response:
+`CONFIDENCE: HIGH/LOW`, `ANSWER:`, and `BEACON_GAP:` when confidence is low. No vector
+store — the full KB fits in context and keeps things simple.
+
+**`slack_bot.py`** — Channel-native Slack bot. Reps ask questions directly in
+`#ask-beacon` — no slash commands or @mentions needed for the original asker. Answers
+are edited in-place for a clean UX. When confidence is low, Beacon posts its best answer
+with a caveat and offers an opt-in source-code deep dive. Gaps are logged to
+`#beacon-gaps` and optionally to Notion regardless of whether the rep takes the deep dive.
+
+**`llm.py`** — Provider abstraction layer. Set `LLM_PROVIDER` in `.env` to switch
+between Anthropic Claude, OpenAI GPT, or Google Gemini. No other code changes needed.
 
 **`ingest.py`** — The reusability layer. Point it at any company's public GitHub repo
 and it rebuilds the knowledge base from real docs. This is what makes Beacon a pattern
-any GTM org can adopt, not a one-off PostHog demo.
+any GTM org can adopt, not a one-off demo.
 
 ---
 
@@ -106,7 +118,7 @@ In any Claude chat:
 
 ## Connect to Slack
 
-Beacon runs as a Slack bot using Socket Mode — no public URL or ngrok required once deployed.
+Beacon runs as a Slack bot using Socket Mode — no public URL required.
 
 ### 1. Create a Slack App
 
@@ -116,44 +128,59 @@ Go to [api.slack.com/apps](https://api.slack.com/apps) → **Create New App** �
 
 Under **OAuth & Permissions → Scopes → Bot Token Scopes**, add:
 - `app_mentions:read` — detect @Beacon mentions
-- `chat:write` — post answers
-- `commands` — handle /beacon slash command
+- `chat:write` — post and edit messages
+- `channels:history` — read thread history to identify the original asker
+- `groups:history` — same, for private channels
 
-Under **Socket Mode**, enable it and generate an **App-Level Token** with `connections:write` scope. This is your `SLACK_APP_TOKEN` (`xapp-...`).
+Under **Socket Mode**, enable it and generate an **App-Level Token** with
+`connections:write` scope. This is your `SLACK_APP_TOKEN` (`xapp-...`).
 
-### 3. Add the slash command
+### 3. Enable Event Subscriptions
 
-Under **Slash Commands** → **Create New Command**:
-- Command: `/beacon`
-- Request URL: anything (Socket Mode ignores this)
-- Description: `Ask Beacon a product question`
+Under **Event Subscriptions**, enable and subscribe to the following under **Bot Events**:
+- `message.channels` — listens for messages in public channels
+- `message.groups` — listens for messages in private channels
+- `app_mention` — handles @Beacon mentions outside #ask-beacon
 
-### 4. Enable Event Subscriptions
-
-Under **Event Subscriptions**, enable and subscribe to `app_mention` under **Bot Events**.
-
-### 5. Install the app and get tokens
+### 4. Install the app and get tokens
 
 **Install App** → copy the **Bot User OAuth Token** (`xoxb-...`). This is your `SLACK_BOT_TOKEN`.
 
-### 6. Add credentials to .env
+### 5. Add credentials to .env
 
 ```bash
 cp .env.example .env
-# Fill in SLACK_BOT_TOKEN, SLACK_APP_TOKEN, and ANTHROPIC_API_KEY
+# Fill in all variables — see .env.example for the full list
 ```
 
-### 7. Run the bot
+### 6. Run the bot
 
 ```bash
-# Activate venv first if not already active
-.venv\Scripts\activate   # Windows
-source .venv/bin/activate # macOS/Linux
+source .venv/bin/activate  # macOS/Linux
+.venv\Scripts\activate     # Windows
 
 python slack_bot.py
 ```
 
-Then in any Slack channel: `/beacon how do we handle the Mixpanel objection?`
+### How it works
+
+- **Top-level message in #ask-beacon** → Beacon always responds, no mention needed
+- **Thread reply from the original asker** → Beacon responds without mention
+- **Thread reply from a different user** → must @Beacon to get a response
+- **Any other channel** → Beacon redirects to #ask-beacon
+
+### Knowledge gaps and low-confidence answers
+
+Beacon uses a two-tier response system:
+
+**High confidence** — KB had a clear answer. Beacon posts it cleanly and moves on.
+
+**Low confidence** — KB was thin or the question went beyond what's in the docs. Beacon:
+1. Posts its best answer with an honest caveat: *"I'm not fully confident in this"*
+2. Offers the rep an opt-in source-code deep dive: *"Reply `yes` if you want me to search deeper"*
+3. Logs the gap to `#beacon-gaps` — regardless of whether the rep takes the deep dive
+
+This keeps reps unblocked immediately while making knowledge gaps visible and actionable.
 
 ---
 
@@ -190,9 +217,13 @@ ingests, add a `GITHUB_TOKEN` to `.env` and update `ingest.py` to pass it as an
 
 | Interface | Status | Notes |
 |---|---|---|
+| Anthropic Claude | ✅ Live | Default LLM provider |
+| OpenAI GPT-4o | ✅ Live | Set `LLM_PROVIDER=openai` in .env |
+| Google Gemini | ✅ Live | Set `LLM_PROVIDER=google` in .env |
 | Claude Desktop / Claude.ai | ✅ Live | 3-line MCP config |
-| Slack | ✅ Live | `/beacon` slash command + `@Beacon` mention |
+| Slack (#ask-beacon) | ✅ Live | Channel-native, no slash commands needed |
 | GitHub | ✅ Live | `ingest.py` pulls from any public repo |
+| Notion | ✅ Live | Gap logging to a Notion database |
 | Gong | 🔑 Requires API key | Official MCP support as of Oct 2025 |
 | Nooks | 🔜 Roadmap | No public API yet |
 
