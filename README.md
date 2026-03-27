@@ -86,13 +86,15 @@ beacon/
 ```
 
 **`server.py`** — FastMCP server. Exposes one tool: `ask_product`. On each call, loads
-all `.md` files from `knowledge_base/` into context and returns a grounded, rep-ready
-answer. No vector store — the full KB fits in context and keeps things simple.
+all `.md` files from `knowledge_base/` into context and returns a structured response:
+`CONFIDENCE: HIGH/LOW`, `ANSWER:`, and `BEACON_GAP:` when confidence is low. No vector
+store — the full KB fits in context and keeps things simple.
 
 **`slack_bot.py`** — Channel-native Slack bot. Reps ask questions directly in
 #ask-beacon — no slash commands or @mentions needed for the original asker. Answers
-are edited in-place for a clean UX. Unanswered questions are logged to #beacon-gaps
-and optionally to Notion.
+are edited in-place for a clean UX. When confidence is low, Beacon posts its best answer
+with a caveat and offers an opt-in source-code deep dive. Gaps are logged to #beacon-gaps
+and optionally to Notion regardless of whether the rep takes the deep dive.
 
 **`llm.py`** — Provider abstraction layer. Set `LLM_PROVIDER` in `.env` to switch
 between Anthropic Claude, OpenAI GPT, or Google Gemini. No other code changes needed.
@@ -216,14 +218,19 @@ One rep asks, everyone sees the answer.
 Right-click the channel name in Slack → **View channel details** → copy the ID at
 the bottom of the panel (starts with `C`).
 
-### Knowledge gaps
+### Knowledge gaps and low-confidence answers
 
-When Beacon can't answer a question it:
-1. Tells the rep honestly and points them to your enablement materials
-2. Posts the unanswered question to `#beacon-gaps` with a link to the thread
-3. Optionally logs it to a Notion database for the team to action
+Beacon uses a two-tier response system:
 
-This makes your knowledge gaps visible and actionable rather than silent.
+**High confidence** — KB had a clear answer. Beacon posts it cleanly and moves on.
+
+**Low confidence** — KB was thin or the question went beyond what's in the docs. Beacon:
+1. Posts its best answer with an honest caveat: *"I'm not fully confident in this"*
+2. Offers the rep an opt-in source-code deep dive: *"Reply `yes` if you want me to search deeper (will take longer)"*
+3. Logs the gap to `#beacon-gaps` with a link to the thread — regardless of whether the rep takes the deep dive
+
+This keeps reps unblocked immediately while making knowledge gaps visible and actionable.
+The deep dive searches the PostHog source/docs repo on GitHub for more granular answers.
 
 ---
 ## Deployment
